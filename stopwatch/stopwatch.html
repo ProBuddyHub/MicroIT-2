@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Project 12: Stopwatch and Clock</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0f0f0f;
+      color: #f1f1f1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: 2rem;
+      color: #00ffff;
+    }
+
+    .clock, .stopwatch {
+      margin: 20px;
+      padding: 20px;
+      background: #1e1e1e;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #00ffff33;
+      text-align: center;
+      width: 280px;
+    }
+
+    .clock-time, .stopwatch-time {
+      font-size: 2rem;
+      margin-bottom: 15px;
+      letter-spacing: 2px;
+    }
+
+    .btn-group button {
+      margin: 5px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .btn-start { background: #4caf50; color: #fff; }
+    .btn-stop  { background: #ff5722; color: #fff; }
+    .btn-reset { background: #2196f3; color: #fff; }
+
+    .btn-group button:hover {
+      opacity: 0.85;
+    }
+
+    footer {
+      margin-top: 40px;
+      font-size: 0.9rem;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <h1>🕒 Stopwatch & Clock</h1>
+
+  <div class="clock">
+    <div class="clock-time" id="clockTime">--:--:--</div>
+    <div>Live Clock</div>
+  </div>
+
+  <div class="stopwatch">
+    <div class="stopwatch-time" id="stopwatchTime">00:00:00</div>
+    <div class="btn-group">
+      <button class="btn-start" onclick="startStopwatch()">Start</button>
+      <button class="btn-stop" onclick="stopStopwatch()">Stop</button>
+      <button class="btn-reset" onclick="resetStopwatch()">Reset</button>
+    </div>
+  </div>
+
+
+  <script>
+    // CLOCK
+    function updateClock() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      document.getElementById("clockTime").textContent = timeString;
+    }
+    setInterval(updateClock, 1000);
+    updateClock(); // initial call
+
+    // STOPWATCH
+    let stopwatchInterval;
+    let elapsedSeconds = 0;
+    let isRunning = false;
+
+    function formatTime(sec) {
+      const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    function startStopwatch() {
+      if (isRunning) return;
+      isRunning = true;
+      stopwatchInterval = setInterval(() => {
+        elapsedSeconds++;
+        document.getElementById("stopwatchTime").textContent = formatTime(elapsedSeconds);
+      }, 1000);
+    }
+
+    function stopStopwatch() {
+      isRunning = false;
+      clearInterval(stopwatchInterval);
+    }
+
+    function resetStopwatch() {
+      stopStopwatch();
+      elapsedSeconds = 0;
+      document.getElementById("stopwatchTime").textContent = "00:00:00";
+    }
+  </script>
+</body>
+</html>

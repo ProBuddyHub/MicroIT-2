@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Advanced To-Do List</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      margin: 0; padding: 2rem;
+      display: flex; justify-content: center;
+    }
+    .container {
+      width: 100%; max-width: 700px;
+      background: #fff; padding: 2rem;
+      border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { text-align:center; margin-bottom:1rem; }
+
+    .input-group, .grouping {
+      display: flex; flex-wrap: wrap; gap:0.75rem; margin-bottom:1rem;
+    }
+    .input-group input, .input-group select, .input-group button,
+    .grouping select, .grouping button {
+      padding:0.6rem 0.8rem; font-size:1rem; border:1px solid #ccc; border-radius:4px;
+    }
+    .input-group input { flex:1 1 40%; }
+    .input-group select { flex:1 1 20%; cursor:pointer; background:#fff; }
+    .input-group button { flex:1 1 15%; background:#007bff; color:#fff; border:none; cursor:pointer; }
+    .input-group button:hover { background:#0056b3; }
+
+    .grouping select { flex:1 1 30%; }
+    .grouping button { flex:1 1 15%; background:#28a745; color:#fff; border:none; cursor:pointer; }
+    .grouping button:hover { background:#218838; }
+
+    .category-group { margin-bottom:2rem; }
+    .category-title {
+      font-size:1.2rem; font-weight:600; color:#333;
+      border-bottom:2px solid #007bff; padding-bottom:0.2rem; margin-bottom:0.5rem;
+    }
+    ul { list-style:none; padding:0; margin:0; }
+    li {
+      display:flex; align-items:center; justify-content: space-between;
+      padding:0.8rem 1rem; background:#f7f7f7; margin-bottom:0.6rem;
+      border-left:6px solid #6c757d; border-radius:4px;
+      transition:background 0.3s;
+    }
+    li.high   { border-left-color:#dc3545; }
+    li.medium { border-left-color:#fd7e14; }
+    li.low    { border-left-color:#198754; }
+    li.completed { background:#d1e7dd; text-decoration:line-through; color:#6c757d; }
+
+    .task-left { display:flex; align-items:center; }
+    .task-left input[type="checkbox"] { margin-right:0.75rem; }
+    .task-info { display:flex; flex-direction:column; }
+    .task-title { font-weight:600; }
+    .task-meta  { font-size:0.85rem; color:#666; }
+
+    .btn-group button {
+      background:#6c757d; color:#fff; border:none; padding:0.3rem 0.6rem;
+      margin-left:0.5rem; cursor:pointer; border-radius:4px;
+    }
+    .btn-group button:hover { background:#5a6268; }
+    .btn-group .up, .btn-group .down { background:#17a2b8; }
+    .btn-group .up:hover, .btn-group .down:hover { background:#138496; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ Advanced To-Do List</h1>
+
+    <!-- Add Task -->
+    <div class="input-group">
+      <input type="text" id="taskInput" placeholder="Task title…"/>
+      <select id="priorityInput">
+        <option value="high">High</option>
+        <option value="medium" selected>Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <select id="categoryInput">
+        <option value="General">General</option>
+      </select>
+      <input type="text" id="newCategory" placeholder="New category…"/>
+      <button id="addBtn">Add</button>
+    </div>
+
+    <!-- Grouping Controls -->
+    <div class="grouping">
+      <select id="groupCategory">
+        <option value="">Assign selected to…</option>
+      </select>
+      <button id="assignBtn">Assign</button>
+    </div>
+
+    <!-- Tasks Container -->
+    <div id="tasksContainer"></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const taskInput    = document.getElementById("taskInput");
+      const priorityIn   = document.getElementById("priorityInput");
+      const categoryIn   = document.getElementById("categoryInput");
+      const newCatInput  = document.getElementById("newCategory");
+      const addBtn       = document.getElementById("addBtn");
+      const groupSel     = document.getElementById("groupCategory");
+      const assignBtn    = document.getElementById("assignBtn");
+      const tasksContainer = document.getElementById("tasksContainer");
+
+      let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+      let categories = JSON.parse(localStorage.getItem("categories")) || ["General"];
+
+      function save() {
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        localStorage.setItem("categories", JSON.stringify(categories));
+      }
+
+      function refreshCategoryDropdowns() {
+        [categoryIn, groupSel].forEach(sel => {
+          sel.innerHTML = "";
+          categories.forEach(cat => {
+            const o = document.createElement("option"); o.value = cat; o.text = cat;
+            sel.appendChild(o);
+          });
+        });
+        const placeholder = document.createElement("option");
+        placeholder.text = "Assign selected to…"; placeholder.value="";
+        groupSel.insertBefore(placeholder, groupSel.firstChild);
+      }
+
+      function createTaskElem(task, idx) {
+        const li = document.createElement("li");
+        li.className = task.priority + (task.completed?" completed":"");
+        // Left: checkbox + info
+        const left = document.createElement("div"); left.className="task-left";
+        const chk = document.createElement("input"); chk.type="checkbox"; chk.checked=task.completed;
+        chk.addEventListener("change",()=>{ tasks[idx].completed=chk.checked; save(); render(); });
+        left.appendChild(chk);
+        const info = document.createElement("div"); info.className="task-info";
+        info.innerHTML = `<div class="task-title">${task.title}</div>
+                          <div class="task-meta">Priority: ${task.priority} | Cat: ${task.category}</div>`;
+        left.appendChild(info);
+        li.appendChild(left);
+        // Buttons
+        const btns = document.createElement("div"); btns.className="btn-group";
+        const del = document.createElement("button"); del.textContent="Delete"; del.addEventListener("click",()=>{
+          tasks.splice(idx,1); save(); render();
+        });
+        const up = document.createElement("button"); up.textContent="↑"; up.className="up"; up.addEventListener("click",()=>{
+          if(idx>0 && tasks[idx].category===tasks[idx-1].category){
+            [tasks[idx-1],tasks[idx]]=[tasks[idx],tasks[idx-1]]; save(); render();
+          }
+        });
+        const down = document.createElement("button"); down.textContent="↓"; down.className="down"; down.addEventListener("click",()=>{
+          if(idx<tasks.length-1 && tasks[idx].category===tasks[idx+1].category){
+            [tasks[idx+1],tasks[idx]]=[tasks[idx],tasks[idx+1]]; save(); render();
+          }
+        });
+        btns.append(del,up,down);
+        li.appendChild(btns);
+        return li;
+      }
+
+      function render() {
+        tasksContainer.innerHTML="";
+        if(!tasks.length){
+          tasksContainer.textContent="No tasks added.";
+          return;
+        }
+        // Group by category
+        categories.forEach(cat => {
+          const group = tasks
+            .map((t,i)=>({t,i}))
+            .filter(x=>x.t.category===cat);
+          if(!group.length) return;
+          const div = document.createElement("div"); div.className="category-group";
+          const hdr = document.createElement("div"); hdr.className="category-title"; hdr.textContent=cat;
+          div.appendChild(hdr);
+          const ul = document.createElement("ul"); ul.className="task-list";
+          group.forEach(({t,i})=>ul.appendChild(createTaskElem(t,i)));
+          div.appendChild(ul);
+          tasksContainer.appendChild(div);
+        });
+      }
+
+      addBtn.addEventListener("click",()=>{
+        const title = taskInput.value.trim();
+        if(!title) return alert("Enter a task");
+        const priority = priorityIn.value;
+        let category = categoryIn.value;
+        const newCat = newCatInput.value.trim();
+        if(newCat){
+          if(!categories.includes(newCat)){
+            categories.push(newCat);
+            refreshCategoryDropdowns();
+          }
+          category=newCat;
+          newCatInput.value="";
+        }
+        tasks.push({title,priority,category,completed:false});
+        taskInput.value="";
+        save(); render();
+      });
+
+      assignBtn.addEventListener("click",()=>{
+        const selCat = groupSel.value;
+        if(!selCat) return alert("Choose a category to assign");
+        // Find all checked checkboxes and assign
+        const checkboxes = document.querySelectorAll(".task-left input[type=checkbox]:not(:checked)");
+        // We want tasks that are not complete but whose checkboxes are checked:
+        // Actually use a data-index
+        document.querySelectorAll(".task-left").forEach((left,idx) => {
+          const chk = left.querySelector("input[type=checkbox]");
+          if(chk.checked && !tasks[idx].completed){
+            tasks[idx].category=selCat;
+          }
+        });
+        save(); render();
+      });
+
+      // Initialize
+      refreshCategoryDropdowns();
+      render();
+    });
+  </script>
+</body>
+</html>
