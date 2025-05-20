@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>File Encryptor/Decryptor</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #00ffcc;
+        }
+
+        form {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: #1e1e1e;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #00ffcc44;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border: none;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+        }
+
+        button {
+            padding: 10px;
+            width: 150px;
+            border: none;
+            border-radius: 5px;
+            background-color: #00ffcc;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #00ddaa;
+        }
+
+        #status {
+            margin-top: 1rem;
+            color: #ffcc00;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 File Encryptor / Decryptor</h1>
+
+    <form id="encryptForm">
+        <input type="file" name="file" id="fileInput" required>
+        <input type="text" name="key" id="keyInput" placeholder="Enter or generate encryption key" required>
+        <div style="display: flex; gap: 10px;">
+            <button type="button" onclick="generateKey()">🔑 Generate Key</button>
+            <button type="button" onclick="submitForm('encrypt')">Encrypt</button>
+            <button type="button" onclick="submitForm('decrypt')">Decrypt</button>
+        </div>
+    </form>
+
+    <div id="status"></div>
+
+    <script>
+        function generateKey() {
+            fetch('/generate-key')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('keyInput').value = data.key;
+                });
+        }
+
+        function submitForm(action) {
+            const fileInput = document.getElementById('fileInput');
+            const keyInput = document.getElementById('keyInput');
+            const statusDiv = document.getElementById('status');
+
+            if (!fileInput.files.length || !keyInput.value.trim()) {
+                statusDiv.textContent = "❌ Please select a file and enter a key.";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('key', keyInput.value.trim());
+            formData.append('action', action);
+
+            statusDiv.textContent = "🔄 Processing...";
+
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => {
+                if (res.headers.get('Content-Disposition')) {
+                    return res.blob();
+                } else {
+                    return res.json();
+                }
+            })
+            .then(data => {
+                if (data.error) {
+                    statusDiv.textContent = "❌ Error: " + data.error;
+                } else {
+                    const url = window.URL.createObjectURL(data);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "result";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    statusDiv.textContent = "✅ File processed successfully.";
+                }
+            })
+            .catch(err => {
+                statusDiv.textContent = "❌ Failed: " + err.message;
+            });
+        }
+    </script>
+</body>
+</html>
+
